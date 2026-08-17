@@ -1,96 +1,34 @@
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
 const path = require('path');
-const fs = require('fs');
 
-// ===============================
-// تحميل الخط العربي
-// ===============================
+const fontPath = path.join(__dirname, '..', 'fonts', 'NotoSansArabic-Regular.ttf');
 
-const fontPaths = [
-  path.join(__dirname, '..', 'fonts', 'NotoSansArabic-Regular.ttf'),
-  path.join(__dirname, 'fonts', 'NotoSansArabic-Regular.ttf'),
-  path.join(process.cwd(), 'fonts', 'NotoSansArabic-Regular.ttf'),
-];
-
-let FONT = 'sans-serif';
-
-for (const fontPath of fontPaths) {
-  if (!fs.existsSync(fontPath)) continue;
-
-  try {
-    GlobalFonts.registerFromPath(fontPath, 'NotoSansArabic');
-    FONT = 'NotoSansArabic';
-
-    console.log(`✅ تم تحميل الخط العربي: ${fontPath}`);
-    break;
-  } catch (error) {
-    console.error(`❌ خطأ في تحميل الخط: ${error.message}`);
-  }
+try {
+  GlobalFonts.registerFromPath(fontPath, 'NotoSansArabic');
+  console.log('✅ تم تحميل الخط العربي');
+} catch (error) {
+  console.error('❌ تعذر تحميل الخط العربي:', error.message);
 }
 
-console.log(`🖋️ الخط المستخدم للصور: ${FONT}`);
-
-// ===============================
-// أدوات الرسم
-// ===============================
+const FONT = 'NotoSansArabic';
 
 function drawRoundedRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
-
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
-
-  ctx.quadraticCurveTo(
-    x + w,
-    y,
-    x + w,
-    y + r
-  );
-
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
   ctx.lineTo(x + w, y + h - r);
-
-  ctx.quadraticCurveTo(
-    x + w,
-    y + h,
-    x + w - r,
-    y + h
-  );
-
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
   ctx.lineTo(x + r, y + h);
-
-  ctx.quadraticCurveTo(
-    x,
-    y + h,
-    x,
-    y + h - r
-  );
-
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
   ctx.lineTo(x, y + r);
-
-  ctx.quadraticCurveTo(
-    x,
-    y,
-    x + r,
-    y
-  );
-
+  ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
 
-function drawCard(
-  ctx,
-  x,
-  y,
-  w,
-  h,
-  r = 16,
-  bg = 'rgba(30,30,50,0.95)',
-  border = null
-) {
+function drawCard(ctx, x, y, w, h, r = 16, bg = 'rgba(30,30,50,0.95)', border = null) {
   ctx.save();
-
   drawRoundedRect(ctx, x, y, w, h, r);
-
   ctx.fillStyle = bg;
   ctx.fill();
 
@@ -114,16 +52,7 @@ function drawGradientBg(ctx, w, h, colors) {
   ctx.fillRect(0, 0, w, h);
 }
 
-function drawProgressBar(
-  ctx,
-  x,
-  y,
-  w,
-  h,
-  progress,
-  color1,
-  color2
-) {
+function drawProgressBar(ctx, x, y, w, h, progress, color1, color2) {
   ctx.save();
 
   drawRoundedRect(ctx, x, y, w, h, h / 2);
@@ -132,26 +61,11 @@ function drawProgressBar(
   ctx.fill();
 
   if (progress > 0) {
-    const fillW = Math.max(
-      (w * progress) / 100,
-      h
-    );
+    const fillW = Math.max((w * progress) / 100, h);
 
-    drawRoundedRect(
-      ctx,
-      x,
-      y,
-      fillW,
-      h,
-      h / 2
-    );
+    drawRoundedRect(ctx, x, y, fillW, h, h / 2);
 
-    const grad = ctx.createLinearGradient(
-      x,
-      0,
-      x + fillW,
-      0
-    );
+    const grad = ctx.createLinearGradient(x, 0, x + fillW, 0);
 
     grad.addColorStop(0, color1);
     grad.addColorStop(1, color2);
@@ -190,37 +104,20 @@ function drawDecorativeLines(ctx, w, h) {
 
   for (let i = 0; i < 5; i++) {
     ctx.beginPath();
-
-    ctx.moveTo(
-      0,
-      h * (i / 5)
-    );
-
-    ctx.lineTo(
-      w,
-      h * (i / 5 + 0.2)
-    );
-
+    ctx.moveTo(0, h * (i / 5));
+    ctx.lineTo(w, h * (i / 5 + 0.2));
     ctx.stroke();
   }
 
   ctx.restore();
 }
 
-// ===============================
-// الأرقام والرتب
-// ===============================
-
 function ar(n) {
-  if (n === undefined || n === null) {
-    return '0';
-  }
+  if (n === undefined || n === null) return '0';
 
   const num = Number(n);
 
-  if (isNaN(num)) {
-    return '0';
-  }
+  if (isNaN(num)) return '0';
 
   if (num >= 1e9) {
     return (num / 1e9).toFixed(2) + 'B';
@@ -261,10 +158,6 @@ function getRankName(totalWealth) {
   return 'أسطورة اقتصادية';
 }
 
-// ===============================
-// صورة الرصيد
-// ===============================
-
 async function generateBalanceImage(user) {
   const w = 700;
   const h = 380;
@@ -272,62 +165,43 @@ async function generateBalanceImage(user) {
   const canvas = createCanvas(w, h);
   const ctx = canvas.getContext('2d');
 
-  const total =
-    (user.cash || 0) +
-    (user.bank || 0);
-
+  const total = (user.cash || 0) + (user.bank || 0);
   const rankColor = getRankColor(total);
 
-  drawGradientBg(
-    ctx,
-    w,
-    h,
-    [
-      '#0a0a1a',
-      '#0d1b2a',
-      '#0a1520'
-    ]
-  );
+  drawGradientBg(ctx, w, h, [
+    '#0a0a1a',
+    '#0d1b2a',
+    '#0a1520'
+  ]);
 
   drawStars(ctx, w, h, 80);
   drawDecorativeLines(ctx, w, h);
 
-  const headerGrad =
-    ctx.createLinearGradient(
-      0,
-      0,
-      w,
-      80
-    );
+  const headerGrad = ctx.createLinearGradient(0, 0, w, 80);
 
-  headerGrad.addColorStop(
-    0,
-    rankColor + '33'
-  );
-
-  headerGrad.addColorStop(
-    1,
-    'transparent'
-  );
+  headerGrad.addColorStop(0, rankColor + '33');
+  headerGrad.addColorStop(1, 'transparent');
 
   ctx.fillStyle = headerGrad;
   ctx.fillRect(0, 0, w, 80);
 
-  ctx.font = `bold 28px "${FONT}"`;
+  ctx.font = `bold 28px ${FONT}`;
   ctx.fillStyle = rankColor;
   ctx.textAlign = 'center';
 
   ctx.fillText(
-    `💰 رصيد ${user.username || 'مستخدم'}`,
+    `رصيد ${user.username}`,
     w / 2,
     45
   );
 
-  ctx.font = `16px "${FONT}"`;
+  const rankName = getRankName(total);
+
+  ctx.font = `16px ${FONT}`;
   ctx.fillStyle = '#aaaaaa';
 
   ctx.fillText(
-    `رتبة: ${getRankName(total)}`,
+    `رتبة: ${rankName}`,
     w / 2,
     68
   );
@@ -341,8 +215,6 @@ async function generateBalanceImage(user) {
 
   const cardY = 95;
 
-  // المحفظة
-
   drawCard(
     ctx,
     startX,
@@ -354,17 +226,17 @@ async function generateBalanceImage(user) {
     '#1a4a9a'
   );
 
-  ctx.font = `14px "${FONT}"`;
+  ctx.font = `14px ${FONT}`;
   ctx.fillStyle = '#7aadff';
   ctx.textAlign = 'center';
 
   ctx.fillText(
-    '💵 النقد (المحفظة)',
+    'النقد (المحفظة)',
     startX + cardW / 2,
     cardY + 28
   );
 
-  ctx.font = `bold 34px "${FONT}"`;
+  ctx.font = `bold 34px ${FONT}`;
   ctx.fillStyle = '#ffffff';
 
   ctx.fillText(
@@ -373,7 +245,7 @@ async function generateBalanceImage(user) {
     cardY + 72
   );
 
-  ctx.font = `12px "${FONT}"`;
+  ctx.font = `12px ${FONT}`;
   ctx.fillStyle = '#5599cc';
 
   ctx.fillText(
@@ -382,10 +254,7 @@ async function generateBalanceImage(user) {
     cardY + 95
   );
 
-  // البنك
-
-  const cardX2 =
-    startX + cardW + gap;
+  const cardX2 = startX + cardW + gap;
 
   drawCard(
     ctx,
@@ -398,16 +267,17 @@ async function generateBalanceImage(user) {
     '#1a8a4a'
   );
 
-  ctx.font = `14px "${FONT}"`;
+  ctx.font = `14px ${FONT}`;
   ctx.fillStyle = '#7affaa';
+  ctx.textAlign = 'center';
 
   ctx.fillText(
-    '🏦 البنك',
+    'البنك',
     cardX2 + cardW / 2,
     cardY + 28
   );
 
-  ctx.font = `bold 34px "${FONT}"`;
+  ctx.font = `bold 34px ${FONT}`;
   ctx.fillStyle = '#ffffff';
 
   ctx.fillText(
@@ -416,7 +286,7 @@ async function generateBalanceImage(user) {
     cardY + 72
   );
 
-  ctx.font = `12px "${FONT}"`;
+  ctx.font = `12px ${FONT}`;
   ctx.fillStyle = '#55cc88';
 
   ctx.fillText(
@@ -424,8 +294,6 @@ async function generateBalanceImage(user) {
     cardX2 + cardW / 2,
     cardY + 95
   );
-
-  // الذهب والجواهر
 
   drawCard(
     ctx,
@@ -438,12 +306,13 @@ async function generateBalanceImage(user) {
     '#ffd70044'
   );
 
-  ctx.font = `13px "${FONT}"`;
+  ctx.font = `13px ${FONT}`;
   ctx.fillStyle = '#ffd700';
+
   ctx.textAlign = 'left';
 
   ctx.fillText(
-    `🥇 ذهب: ${ar(user.gold)}`,
+    `ذهب: ${ar(user.gold)}`,
     55,
     258
   );
@@ -451,14 +320,14 @@ async function generateBalanceImage(user) {
   ctx.textAlign = 'right';
 
   ctx.fillText(
-    `💎 جواهر: ${ar(user.gems)}`,
+    `جواهر: ${ar(user.gems)}`,
     w - 55,
     258
   );
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 14px "${FONT}"`;
+  ctx.font = `bold 14px ${FONT}`;
 
   ctx.fillText(
     `إجمالي الثروة: ${ar(total)} عملة`,
@@ -466,13 +335,9 @@ async function generateBalanceImage(user) {
     261
   );
 
-  // XP
-
-  const xp = user.xp || 0;
-
   const lvl =
     Math.floor(
-      Math.sqrt(xp / 100)
+      Math.sqrt((user.xp || 0) / 100)
     ) + 1;
 
   const nextXp =
@@ -484,19 +349,20 @@ async function generateBalanceImage(user) {
   const prog =
     Math.min(
       Math.floor(
-        ((xp - curXp) /
+        (((user.xp || 0) - curXp) /
           (nextXp - curXp)) *
           100
       ),
       100
     ) || 0;
 
-  ctx.font = `13px "${FONT}"`;
+  ctx.font = `13px ${FONT}`;
   ctx.fillStyle = '#aaaaaa';
+
   ctx.textAlign = 'left';
 
   ctx.fillText(
-    `⭐ المستوى ${lvl}`,
+    `المستوى ${lvl}`,
     55,
     310
   );
@@ -504,7 +370,7 @@ async function generateBalanceImage(user) {
   ctx.textAlign = 'right';
 
   ctx.fillText(
-    `${xp} / ${nextXp} XP`,
+    `${user.xp || 0} / ${nextXp} XP`,
     w - 55,
     310
   );
@@ -520,7 +386,7 @@ async function generateBalanceImage(user) {
     '#ff8800'
   );
 
-  ctx.font = `11px "${FONT}"`;
+  ctx.font = `11px ${FONT}`;
   ctx.fillStyle = '#666666';
   ctx.textAlign = 'center';
 
@@ -533,27 +399,24 @@ async function generateBalanceImage(user) {
   return canvas.toBuffer('image/png');
 }
 
-// ===============================
-// المتصدرين
-// ===============================
-
 async function generateLeaderboardImage(
   users,
   title = 'أغنى اللاعبين'
 ) {
   const w = 700;
-
   const h =
     80 +
     users.length * 68 +
     40;
 
-  const canvas = createCanvas(
-    w,
-    Math.max(h, 300)
-  );
+  const canvas =
+    createCanvas(
+      w,
+      Math.max(h, 300)
+    );
 
-  const ctx = canvas.getContext('2d');
+  const ctx =
+    canvas.getContext('2d');
 
   drawGradientBg(
     ctx,
@@ -573,12 +436,12 @@ async function generateLeaderboardImage(
     60
   );
 
-  ctx.font = `bold 26px "${FONT}"`;
+  ctx.font = `bold 26px ${FONT}`;
   ctx.fillStyle = '#ffd700';
   ctx.textAlign = 'center';
 
   ctx.fillText(
-    `🏆 ${title}`,
+    title,
     w / 2,
     45
   );
@@ -591,7 +454,6 @@ async function generateLeaderboardImage(
 
   users.forEach((u, i) => {
     const y = 75 + i * 68;
-
     const isTop = i < 3;
 
     const cardColor = isTop
@@ -622,10 +484,9 @@ async function generateLeaderboardImage(
     );
 
     const medal =
-      medals[i] ||
-      `#${i + 1}`;
+      medals[i] || `#${i + 1}`;
 
-    ctx.font = `bold 22px "${FONT}"`;
+    ctx.font = `bold 22px ${FONT}`;
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
 
@@ -635,11 +496,11 @@ async function generateLeaderboardImage(
       y + 36
     );
 
-    ctx.font = `bold 16px "${FONT}"`;
+    ctx.font = `bold 16px ${FONT}`;
     ctx.fillStyle = '#e0e0e0';
 
     ctx.fillText(
-      u.username || 'مستخدم',
+      u.username,
       95,
       y + 28
     );
@@ -651,7 +512,7 @@ async function generateLeaderboardImage(
     const rankColor =
       getRankColor(total);
 
-    ctx.font = `13px "${FONT}"`;
+    ctx.font = `13px ${FONT}`;
     ctx.fillStyle = rankColor;
 
     ctx.fillText(
@@ -660,7 +521,7 @@ async function generateLeaderboardImage(
       y + 50
     );
 
-    ctx.font = `bold 18px "${FONT}"`;
+    ctx.font = `bold 18px ${FONT}`;
     ctx.fillStyle = '#ffd700';
     ctx.textAlign = 'right';
 
@@ -671,7 +532,7 @@ async function generateLeaderboardImage(
     );
   });
 
-  ctx.font = `11px "${FONT}"`;
+  ctx.font = `11px ${FONT}`;
   ctx.fillStyle = '#444444';
   ctx.textAlign = 'center';
 
@@ -683,10 +544,6 @@ async function generateLeaderboardImage(
 
   return canvas.toBuffer('image/png');
 }
-
-// ===============================
-// صورة بسيطة
-// ===============================
 
 async function generateSimpleImage(
   title,
@@ -702,12 +559,14 @@ async function generateSimpleImage(
     lines.length * lineH +
     40;
 
-  const canvas = createCanvas(
-    w,
-    Math.max(h, 200)
-  );
+  const canvas =
+    createCanvas(
+      w,
+      Math.max(h, 200)
+    );
 
-  const ctx = canvas.getContext('2d');
+  const ctx =
+    canvas.getContext('2d');
 
   drawGradientBg(
     ctx,
@@ -738,7 +597,7 @@ async function generateSimpleImage(
     color + '66'
   );
 
-  ctx.font = `bold 24px "${FONT}"`;
+  ctx.font = `bold 24px ${FONT}`;
   ctx.fillStyle = color;
   ctx.textAlign = 'center';
 
@@ -776,7 +635,7 @@ async function generateSimpleImage(
     }
 
     if (line.header) {
-      ctx.font = `bold 15px "${FONT}"`;
+      ctx.font = `bold 15px ${FONT}`;
       ctx.fillStyle = color;
       ctx.textAlign = 'center';
 
@@ -789,8 +648,7 @@ async function generateSimpleImage(
       return;
     }
 
-    ctx.font = `15px "${FONT}"`;
-
+    ctx.font = `15px ${FONT}`;
     ctx.fillStyle =
       line.highlight
         ? '#ffd700'
@@ -806,10 +664,8 @@ async function generateSimpleImage(
       );
 
       ctx.textAlign = 'right';
-
       ctx.fillStyle =
-        line.rightColor ||
-        '#ffffff';
+        line.rightColor || '#ffffff';
 
       ctx.fillText(
         line.right,
@@ -827,7 +683,7 @@ async function generateSimpleImage(
     }
   });
 
-  ctx.font = `11px "${FONT}"`;
+  ctx.font = `11px ${FONT}`;
   ctx.fillStyle = '#444444';
   ctx.textAlign = 'center';
 
@@ -840,10 +696,6 @@ async function generateSimpleImage(
   return canvas.toBuffer('image/png');
 }
 
-// ===============================
-// نتائج الألعاب
-// ===============================
-
 async function generateGameResultImage(
   title,
   result,
@@ -854,8 +706,11 @@ async function generateGameResultImage(
   const w = 600;
   const h = 320;
 
-  const canvas = createCanvas(w, h);
-  const ctx = canvas.getContext('2d');
+  const canvas =
+    createCanvas(w, h);
+
+  const ctx =
+    canvas.getContext('2d');
 
   const bgColor = isWin
     ? [
@@ -888,11 +743,6 @@ async function generateGameResultImage(
       ? '#44ff88'
       : '#ff4444';
 
-  const mainEmoji =
-    isWin
-      ? '🎉'
-      : '💔';
-
   drawCard(
     ctx,
     20,
@@ -904,17 +754,17 @@ async function generateGameResultImage(
     mainColor + '88'
   );
 
-  ctx.font = `bold 26px "${FONT}"`;
+  ctx.font = `bold 26px ${FONT}`;
   ctx.fillStyle = mainColor;
   ctx.textAlign = 'center';
 
   ctx.fillText(
-    `${mainEmoji} ${title}`,
+    title,
     w / 2,
     62
   );
 
-  ctx.font = `bold 44px "${FONT}"`;
+  ctx.font = `bold 44px ${FONT}`;
   ctx.fillStyle =
     isWin
       ? '#ffd700'
@@ -928,7 +778,7 @@ async function generateGameResultImage(
     155
   );
 
-  ctx.font = `18px "${FONT}"`;
+  ctx.font = `18px ${FONT}`;
   ctx.fillStyle = '#888888';
 
   ctx.fillText(
@@ -937,7 +787,7 @@ async function generateGameResultImage(
     180
   );
 
-  ctx.font = `bold 20px "${FONT}"`;
+  ctx.font = `bold 20px ${FONT}`;
   ctx.fillStyle = '#ffffff';
 
   ctx.fillText(
@@ -947,7 +797,7 @@ async function generateGameResultImage(
   );
 
   details.forEach((d, i) => {
-    ctx.font = `14px "${FONT}"`;
+    ctx.font = `14px ${FONT}`;
     ctx.fillStyle = '#aaaaaa';
 
     ctx.fillText(
@@ -957,7 +807,7 @@ async function generateGameResultImage(
     );
   });
 
-  ctx.font = `11px "${FONT}"`;
+  ctx.font = `11px ${FONT}`;
   ctx.fillStyle = '#444444';
 
   ctx.fillText(
@@ -969,10 +819,6 @@ async function generateGameResultImage(
   return canvas.toBuffer('image/png');
 }
 
-// ===============================
-// البروفايل
-// ===============================
-
 async function generateProfileImage(
   user,
   properties = [],
@@ -981,8 +827,11 @@ async function generateProfileImage(
   const w = 700;
   const h = 460;
 
-  const canvas = createCanvas(w, h);
-  const ctx = canvas.getContext('2d');
+  const canvas =
+    createCanvas(w, h);
+
+  const ctx =
+    canvas.getContext('2d');
 
   const total =
     (user.cash || 0) +
@@ -1028,12 +877,7 @@ async function generateProfileImage(
   );
 
   ctx.fillStyle = topGrad;
-  ctx.fillRect(
-    0,
-    0,
-    w,
-    100
-  );
+  ctx.fillRect(0, 0, w, 100);
 
   ctx.beginPath();
 
@@ -1056,7 +900,7 @@ async function generateProfileImage(
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  ctx.font = `bold 28px "${FONT}"`;
+  ctx.font = `bold 28px ${FONT}`;
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
 
@@ -1066,17 +910,17 @@ async function generateProfileImage(
     65
   );
 
-  ctx.font = `bold 22px "${FONT}"`;
+  ctx.font = `bold 22px ${FONT}`;
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
 
   ctx.fillText(
-    user.username || 'مستخدم',
+    user.username,
     110,
     45
   );
 
-  ctx.font = `14px "${FONT}"`;
+  ctx.font = `14px ${FONT}`;
   ctx.fillStyle = rankColor;
 
   ctx.fillText(
@@ -1108,17 +952,17 @@ async function generateProfileImage(
     '#1a4a9a44'
   );
 
-  ctx.font = `bold 13px "${FONT}"`;
+  ctx.font = `bold 13px ${FONT}`;
   ctx.fillStyle = '#7aadff';
   ctx.textAlign = 'center';
 
   ctx.fillText(
-    '💰 الثروة',
+    'الثروة',
     col1X + (w / 2 - 20) / 2,
     statY + 25
   );
 
-  ctx.font = `bold 26px "${FONT}"`;
+  ctx.font = `bold 26px ${FONT}`;
   ctx.fillStyle = '#ffffff';
 
   ctx.fillText(
@@ -1127,7 +971,7 @@ async function generateProfileImage(
     statY + 60
   );
 
-  ctx.font = `12px "${FONT}"`;
+  ctx.font = `12px ${FONT}`;
   ctx.fillStyle = '#aaaaaa';
 
   ctx.fillText(
@@ -1147,16 +991,17 @@ async function generateProfileImage(
     '#9a5a1a44'
   );
 
-  ctx.font = `bold 13px "${FONT}"`;
+  ctx.font = `bold 13px ${FONT}`;
   ctx.fillStyle = '#ffaa7a';
+  ctx.textAlign = 'center';
 
   ctx.fillText(
-    '⭐ الخبرة',
+    'الخبرة',
     col2X + (w / 2 - 20) / 2,
     statY + 25
   );
 
-  ctx.font = `bold 26px "${FONT}"`;
+  ctx.font = `bold 26px ${FONT}`;
   ctx.fillStyle = '#ffffff';
 
   ctx.fillText(
@@ -1165,7 +1010,7 @@ async function generateProfileImage(
     statY + 60
   );
 
-  ctx.font = `12px "${FONT}"`;
+  ctx.font = `12px ${FONT}`;
   ctx.fillStyle = '#aaaaaa';
 
   ctx.fillText(
@@ -1174,7 +1019,8 @@ async function generateProfileImage(
     statY + 85
   );
 
-  const lvl = user.level || 1;
+  const lvl =
+    user.level || 1;
 
   const nextXp =
     Math.pow(lvl, 2) * 100;
@@ -1192,7 +1038,7 @@ async function generateProfileImage(
       100
     ) || 0;
 
-  ctx.font = `12px "${FONT}"`;
+  ctx.font = `12px ${FONT}`;
   ctx.fillStyle = '#aaaaaa';
   ctx.textAlign = 'left';
 
@@ -1228,29 +1074,29 @@ async function generateProfileImage(
 
   const infos = [
     {
-      label: '🥇 ذهب',
+      label: 'ذهب',
       val: ar(user.gold)
     },
     {
-      label: '💎 جواهر',
+      label: 'جواهر',
       val: ar(user.gems)
     },
     {
-      label: '🏠 عقارات',
+      label: 'عقارات',
       val: String(properties.length)
     },
     {
-      label: '🐾 حيوان',
+      label: 'حيوان',
       val: pets.length
         ? pets[0].pet_type
         : 'لا يوجد'
     },
     {
-      label: '⚔️ نقابة',
+      label: 'نقابة',
       val: user.guild_name || 'لا يوجد'
     },
     {
-      label: '💑 متزوج',
+      label: 'متزوج',
       val: user.married_to
         ? 'نعم'
         : 'لا'
@@ -1274,7 +1120,7 @@ async function generateProfileImage(
       25 +
       row * 34;
 
-    ctx.font = `12px "${FONT}"`;
+    ctx.font = `12px ${FONT}`;
     ctx.fillStyle = '#888888';
     ctx.textAlign = 'center';
 
@@ -1284,7 +1130,7 @@ async function generateProfileImage(
       iy
     );
 
-    ctx.font = `bold 13px "${FONT}"`;
+    ctx.font = `bold 13px ${FONT}`;
     ctx.fillStyle = '#ffffff';
 
     ctx.fillText(
@@ -1306,18 +1152,18 @@ async function generateProfileImage(
       '#ff449988'
     );
 
-    ctx.font = `14px "${FONT}"`;
+    ctx.font = `14px ${FONT}`;
     ctx.fillStyle = '#ff88bb';
     ctx.textAlign = 'center';
 
     ctx.fillText(
-      `💑 متزوج من: ${user.married_to}`,
+      `متزوج من: ${user.married_to}`,
       w / 2,
       390
     );
   }
 
-  ctx.font = `11px "${FONT}"`;
+  ctx.font = `11px ${FONT}`;
   ctx.fillStyle = '#444444';
   ctx.textAlign = 'center';
 
@@ -1330,10 +1176,6 @@ async function generateProfileImage(
   return canvas.toBuffer('image/png');
 }
 
-// ===============================
-// المتجر
-// ===============================
-
 async function generateShopImage(items) {
   const w = 700;
 
@@ -1345,12 +1187,14 @@ async function generateShopImage(items) {
     rows * 90 +
     40;
 
-  const canvas = createCanvas(
-    w,
-    Math.max(h, 300)
-  );
+  const canvas =
+    createCanvas(
+      w,
+      Math.max(h, 300)
+    );
 
-  const ctx = canvas.getContext('2d');
+  const ctx =
+    canvas.getContext('2d');
 
   drawGradientBg(
     ctx,
@@ -1370,12 +1214,12 @@ async function generateShopImage(items) {
     50
   );
 
-  ctx.font = `bold 26px "${FONT}"`;
+  ctx.font = `bold 26px ${FONT}`;
   ctx.fillStyle = '#ffd700';
   ctx.textAlign = 'center';
 
   ctx.fillText(
-    '🛒 المتجر',
+    'المتجر',
     w / 2,
     50
   );
@@ -1407,17 +1251,17 @@ async function generateShopImage(items) {
       '#4444aa44'
     );
 
-    ctx.font = `bold 16px "${FONT}"`;
+    ctx.font = `bold 16px ${FONT}`;
     ctx.fillStyle = '#e0e0e0';
     ctx.textAlign = 'left';
 
     ctx.fillText(
-      `${item.emoji || '📦'} ${item.name}`,
+      `${item.emoji || ''} ${item.name}`,
       x + 14,
       y + 28
     );
 
-    ctx.font = `12px "${FONT}"`;
+    ctx.font = `12px ${FONT}`;
     ctx.fillStyle = '#888888';
 
     ctx.fillText(
@@ -1426,7 +1270,7 @@ async function generateShopImage(items) {
       y + 48
     );
 
-    ctx.font = `bold 16px "${FONT}"`;
+    ctx.font = `bold 16px ${FONT}`;
     ctx.fillStyle = '#ffd700';
     ctx.textAlign = 'right';
 
@@ -1437,8 +1281,9 @@ async function generateShopImage(items) {
     );
 
     if (item.effect) {
-      ctx.font = `11px "${FONT}"`;
+      ctx.font = `11px ${FONT}`;
       ctx.fillStyle = '#44ff88';
+
       ctx.textAlign = 'right';
 
       ctx.fillText(
@@ -1449,7 +1294,7 @@ async function generateShopImage(items) {
     }
   });
 
-  ctx.font = `11px "${FONT}"`;
+  ctx.font = `11px ${FONT}`;
   ctx.fillStyle = '#444444';
   ctx.textAlign = 'center';
 
@@ -1462,10 +1307,6 @@ async function generateShopImage(items) {
   return canvas.toBuffer('image/png');
 }
 
-// ===============================
-// الأسهم
-// ===============================
-
 async function generateStocksImage(stocks) {
   const w = 700;
 
@@ -1474,12 +1315,14 @@ async function generateStocksImage(stocks) {
     stocks.length * 65 +
     40;
 
-  const canvas = createCanvas(
-    w,
-    Math.max(h, 300)
-  );
+  const canvas =
+    createCanvas(
+      w,
+      Math.max(h, 300)
+    );
 
-  const ctx = canvas.getContext('2d');
+  const ctx =
+    canvas.getContext('2d');
 
   drawGradientBg(
     ctx,
@@ -1499,18 +1342,20 @@ async function generateStocksImage(stocks) {
     40
   );
 
-  ctx.font = `bold 24px "${FONT}"`;
+  ctx.font = `bold 24px ${FONT}`;
   ctx.fillStyle = '#44ff88';
   ctx.textAlign = 'center';
 
   ctx.fillText(
-    '📈 سوق الأسهم',
+    'سوق الأسهم',
     w / 2,
     46
   );
 
   stocks.forEach((s, i) => {
-    const y = 65 + i * 65;
+    const y =
+      65 +
+      i * 65;
 
     const change =
       s.change || 0;
@@ -1539,7 +1384,7 @@ async function generateStocksImage(stocks) {
       borderColor
     );
 
-    ctx.font = `bold 16px "${FONT}"`;
+    ctx.font = `bold 16px ${FONT}`;
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
 
@@ -1549,7 +1394,7 @@ async function generateStocksImage(stocks) {
       y + 22
     );
 
-    ctx.font = `13px "${FONT}"`;
+    ctx.font = `13px ${FONT}`;
     ctx.fillStyle = '#888888';
 
     ctx.fillText(
@@ -1558,7 +1403,7 @@ async function generateStocksImage(stocks) {
       y + 42
     );
 
-    ctx.font = `bold 20px "${FONT}"`;
+    ctx.font = `bold 20px ${FONT}`;
     ctx.fillStyle = '#ffd700';
     ctx.textAlign = 'right';
 
@@ -1568,7 +1413,8 @@ async function generateStocksImage(stocks) {
       y + 22
     );
 
-    ctx.font = `bold 14px "${FONT}"`;
+    ctx.font = `bold 14px ${FONT}`;
+
     ctx.fillStyle =
       isUp
         ? '#44ff88'
@@ -1581,7 +1427,7 @@ async function generateStocksImage(stocks) {
     );
   });
 
-  ctx.font = `11px "${FONT}"`;
+  ctx.font = `11px ${FONT}`;
   ctx.fillStyle = '#444444';
   ctx.textAlign = 'center';
 
@@ -1593,10 +1439,6 @@ async function generateStocksImage(stocks) {
 
   return canvas.toBuffer('image/png');
 }
-
-// ===============================
-// التصدير
-// ===============================
 
 module.exports = {
   generateBalanceImage,
