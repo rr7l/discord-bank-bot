@@ -1,34 +1,101 @@
 const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
 const path = require('path');
+const fs = require('fs');
 
-const fontPath = path.join(__dirname, '..', 'fonts', 'NotoSansArabic-Regular.ttf');
+// ===============================
+// تحميل الخط العربي بشكل آمن
+// ===============================
+
+const fontPath = path.join(
+  __dirname,
+  '..',
+  'fonts',
+  'NotoSansArabic-Regular.ttf'
+);
+
+let FONT = 'sans-serif';
 
 try {
-  GlobalFonts.registerFromPath(fontPath, 'NotoSansArabic');
-  console.log('✅ تم تحميل الخط العربي');
+  if (fs.existsSync(fontPath)) {
+    const loaded = GlobalFonts.registerFromPath(
+      fontPath,
+      'NotoSansArabic'
+    );
+
+    if (loaded) {
+      FONT = 'NotoSansArabic';
+      console.log('✅ تم تحميل الخط العربي');
+    } else {
+      console.log('⚠️ تعذر تسجيل الخط العربي - سيتم استخدام الخط الافتراضي');
+    }
+  } else {
+    console.log('⚠️ ملف الخط غير موجود - سيتم استخدام الخط الافتراضي');
+  }
 } catch (error) {
-  console.error('❌ تعذر تحميل الخط العربي:', error.message);
+  console.log('⚠️ مشكلة في الخط:', error.message);
 }
 
-const FONT = 'NotoSansArabic';
+// ===============================
+// أدوات الرسم
+// ===============================
 
-function drawRoundedRect(ctx, x, y, w, h, r) {
+function drawRoundedRect(ctx, x, y, w, h, r = 15) {
   ctx.beginPath();
+
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+
+  ctx.quadraticCurveTo(
+    x + w,
+    y,
+    x + w,
+    y + r
+  );
+
   ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+
+  ctx.quadraticCurveTo(
+    x + w,
+    y + h,
+    x + w - r,
+    y + h
+  );
+
   ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+
+  ctx.quadraticCurveTo(
+    x,
+    y + h,
+    x,
+    y + h - r
+  );
+
   ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
+
+  ctx.quadraticCurveTo(
+    x,
+    y,
+    x + r,
+    y
+  );
+
   ctx.closePath();
 }
 
-function drawCard(ctx, x, y, w, h, r = 16, bg = 'rgba(30,30,50,0.95)', border = null) {
+function drawCard(
+  ctx,
+  x,
+  y,
+  w,
+  h,
+  r = 15,
+  bg = 'rgba(30,30,50,0.95)',
+  border = null
+) {
   ctx.save();
+
   drawRoundedRect(ctx, x, y, w, h, r);
+
   ctx.fillStyle = bg;
   ctx.fill();
 
@@ -41,592 +108,514 @@ function drawCard(ctx, x, y, w, h, r = 16, bg = 'rgba(30,30,50,0.95)', border = 
   ctx.restore();
 }
 
-function drawGradientBg(ctx, w, h, colors) {
-  const grad = ctx.createLinearGradient(0, 0, w, h);
+function drawGradientBg(ctx, w, h) {
+  const gradient = ctx.createLinearGradient(
+    0,
+    0,
+    w,
+    h
+  );
 
-  grad.addColorStop(0, colors[0]);
-  grad.addColorStop(0.5, colors[1]);
-  grad.addColorStop(1, colors[2]);
+  gradient.addColorStop(0, '#080b14');
+  gradient.addColorStop(0.5, '#101a2b');
+  gradient.addColorStop(1, '#080b14');
 
-  ctx.fillStyle = grad;
+  ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, w, h);
 }
 
-function drawProgressBar(ctx, x, y, w, h, progress, color1, color2) {
-  ctx.save();
-
-  drawRoundedRect(ctx, x, y, w, h, h / 2);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
-  ctx.fill();
-
-  if (progress > 0) {
-    const fillW = Math.max((w * progress) / 100, h);
-
-    drawRoundedRect(ctx, x, y, fillW, h, h / 2);
-
-    const grad = ctx.createLinearGradient(x, 0, x + fillW, 0);
-
-    grad.addColorStop(0, color1);
-    grad.addColorStop(1, color2);
-
-    ctx.fillStyle = grad;
-    ctx.fill();
-  }
-
-  ctx.restore();
-}
-
-function drawStars(ctx, w, h, count = 60) {
+function drawStars(ctx, w, h, count = 40) {
   ctx.save();
 
   for (let i = 0; i < count; i++) {
     const x = Math.random() * w;
     const y = Math.random() * h;
-    const r = Math.random() * 1.5;
-    const alpha = Math.random() * 0.6 + 0.2;
+    const radius = Math.random() * 1.3 + 0.2;
 
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(
+      x,
+      y,
+      radius,
+      0,
+      Math.PI * 2
+    );
 
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.5 + 0.15})`;
     ctx.fill();
   }
 
   ctx.restore();
 }
 
-function drawDecorativeLines(ctx, w, h) {
-  ctx.save();
+function drawProgressBar(
+  ctx,
+  x,
+  y,
+  w,
+  h,
+  progress,
+  color = '#4a9eff'
+) {
+  progress = Math.max(
+    0,
+    Math.min(100, Number(progress) || 0)
+  );
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 1;
+  drawRoundedRect(
+    ctx,
+    x,
+    y,
+    w,
+    h,
+    h / 2
+  );
 
-  for (let i = 0; i < 5; i++) {
-    ctx.beginPath();
-    ctx.moveTo(0, h * (i / 5));
-    ctx.lineTo(w, h * (i / 5 + 0.2));
-    ctx.stroke();
-  }
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fill();
 
-  ctx.restore();
+  if (progress <= 0) return;
+
+  const fillW = Math.max(
+    h,
+    (w * progress) / 100
+  );
+
+  drawRoundedRect(
+    ctx,
+    x,
+    y,
+    fillW,
+    h,
+    h / 2
+  );
+
+  ctx.fillStyle = color;
+  ctx.fill();
 }
 
-function ar(n) {
-  if (n === undefined || n === null) return '0';
+// ===============================
+// تنسيق الأرقام
+// ===============================
 
-  const num = Number(n);
-
-  if (isNaN(num)) return '0';
-
-  if (num >= 1e9) {
-    return (num / 1e9).toFixed(2) + 'B';
+function ar(value) {
+  if (
+    value === undefined ||
+    value === null ||
+    Number.isNaN(Number(value))
+  ) {
+    return '0';
   }
 
-  if (num >= 1e6) {
-    return (num / 1e6).toFixed(2) + 'M';
+  const num = Number(value);
+
+  if (num >= 1_000_000_000) {
+    return `${(num / 1_000_000_000).toFixed(2)}B`;
   }
 
-  if (num >= 1e3) {
-    return (num / 1e3).toFixed(1) + 'K';
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(2)}M`;
   }
 
-  return num.toLocaleString();
+  if (num >= 1_000) {
+    return `${(num / 1_000).toFixed(1)}K`;
+  }
+
+  return num.toLocaleString('en-US');
 }
 
-function getRankColor(totalWealth) {
-  if (totalWealth < 1000) return '#808080';
-  if (totalWealth < 10000) return '#a0a0a0';
-  if (totalWealth < 50000) return '#4a9eff';
-  if (totalWealth < 200000) return '#44cc44';
-  if (totalWealth < 1000000) return '#ffa500';
-  if (totalWealth < 10000000) return '#ffd700';
-  if (totalWealth < 100000000) return '#ff6600';
+// ===============================
+// الرتب
+// ===============================
+
+function getRankColor(total) {
+  total = Number(total) || 0;
+
+  if (total < 1000) return '#808080';
+  if (total < 10000) return '#aaaaaa';
+  if (total < 50000) return '#4a9eff';
+  if (total < 200000) return '#44cc44';
+  if (total < 1000000) return '#ffaa00';
+  if (total < 10000000) return '#ffd700';
+  if (total < 100000000) return '#ff6600';
 
   return '#ff0066';
 }
 
-function getRankName(totalWealth) {
-  if (totalWealth < 1000) return 'مفلس';
-  if (totalWealth < 10000) return 'مواطن';
-  if (totalWealth < 50000) return 'عامل';
-  if (totalWealth < 200000) return 'تاجر';
-  if (totalWealth < 1000000) return 'رجل أعمال';
-  if (totalWealth < 10000000) return 'مليونير';
-  if (totalWealth < 100000000) return 'ملياردير';
+function getRankName(total) {
+  total = Number(total) || 0;
+
+  if (total < 1000) return 'مفلس';
+  if (total < 10000) return 'مواطن';
+  if (total < 50000) return 'عامل';
+  if (total < 200000) return 'تاجر';
+  if (total < 1000000) return 'رجل أعمال';
+  if (total < 10000000) return 'مليونير';
+  if (total < 100000000) return 'ملياردير';
 
   return 'أسطورة اقتصادية';
 }
+
+// ===============================
+// إنشاء صورة عامة
+// ===============================
+
+function createBaseCanvas(w, h) {
+  const canvas = createCanvas(w, h);
+  const ctx = canvas.getContext('2d');
+
+  drawGradientBg(ctx, w, h);
+  drawStars(ctx, w, h);
+
+  return {
+    canvas,
+    ctx
+  };
+}
+
+function safeText(ctx, text, x, y, options = {}) {
+  try {
+    ctx.font =
+      options.font ||
+      `16px "${FONT}"`;
+
+    ctx.fillStyle =
+      options.color ||
+      '#ffffff';
+
+    ctx.textAlign =
+      options.align ||
+      'center';
+
+    ctx.textBaseline = 'alphabetic';
+
+    ctx.fillText(
+      String(text ?? ''),
+      x,
+      y
+    );
+  } catch (error) {
+    console.error(
+      '❌ خطأ في رسم النص:',
+      error.message
+    );
+  }
+}
+
+// ===============================
+// الرصيد
+// ===============================
 
 async function generateBalanceImage(user) {
   const w = 700;
   const h = 380;
 
-  const canvas = createCanvas(w, h);
-  const ctx = canvas.getContext('2d');
+  const { canvas, ctx } =
+    createBaseCanvas(w, h);
 
-  const total = (user.cash || 0) + (user.bank || 0);
+  const cash = Number(user.cash) || 0;
+  const bank = Number(user.bank) || 0;
+
+  const total = cash + bank;
   const rankColor = getRankColor(total);
-
-  drawGradientBg(ctx, w, h, [
-    '#0a0a1a',
-    '#0d1b2a',
-    '#0a1520'
-  ]);
-
-  drawStars(ctx, w, h, 80);
-  drawDecorativeLines(ctx, w, h);
-
-  const headerGrad = ctx.createLinearGradient(0, 0, w, 80);
-
-  headerGrad.addColorStop(0, rankColor + '33');
-  headerGrad.addColorStop(1, 'transparent');
-
-  ctx.fillStyle = headerGrad;
-  ctx.fillRect(0, 0, w, 80);
-
-  ctx.font = `bold 28px ${FONT}`;
-  ctx.fillStyle = rankColor;
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    `رصيد ${user.username}`,
-    w / 2,
-    45
-  );
-
-  const rankName = getRankName(total);
-
-  ctx.font = `16px ${FONT}`;
-  ctx.fillStyle = '#aaaaaa';
-
-  ctx.fillText(
-    `رتبة: ${rankName}`,
-    w / 2,
-    68
-  );
-
-  const cardW = 290;
-  const cardH = 110;
-  const gap = 30;
-
-  const startX =
-    (w - cardW * 2 - gap) / 2;
-
-  const cardY = 95;
-
-  drawCard(
-    ctx,
-    startX,
-    cardY,
-    cardW,
-    cardH,
-    14,
-    'rgba(20,40,80,0.9)',
-    '#1a4a9a'
-  );
-
-  ctx.font = `14px ${FONT}`;
-  ctx.fillStyle = '#7aadff';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    'النقد (المحفظة)',
-    startX + cardW / 2,
-    cardY + 28
-  );
-
-  ctx.font = `bold 34px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-
-  ctx.fillText(
-    ar(user.cash),
-    startX + cardW / 2,
-    cardY + 72
-  );
-
-  ctx.font = `12px ${FONT}`;
-  ctx.fillStyle = '#5599cc';
-
-  ctx.fillText(
-    'عملة',
-    startX + cardW / 2,
-    cardY + 95
-  );
-
-  const cardX2 = startX + cardW + gap;
-
-  drawCard(
-    ctx,
-    cardX2,
-    cardY,
-    cardW,
-    cardH,
-    14,
-    'rgba(20,60,40,0.9)',
-    '#1a8a4a'
-  );
-
-  ctx.font = `14px ${FONT}`;
-  ctx.fillStyle = '#7affaa';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    'البنك',
-    cardX2 + cardW / 2,
-    cardY + 28
-  );
-
-  ctx.font = `bold 34px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-
-  ctx.fillText(
-    ar(user.bank),
-    cardX2 + cardW / 2,
-    cardY + 72
-  );
-
-  ctx.font = `12px ${FONT}`;
-  ctx.fillStyle = '#55cc88';
-
-  ctx.fillText(
-    'عملة',
-    cardX2 + cardW / 2,
-    cardY + 95
-  );
-
-  drawCard(
-    ctx,
-    30,
-    225,
-    w - 60,
-    55,
-    12,
-    'rgba(100,80,20,0.3)',
-    '#ffd70044'
-  );
-
-  ctx.font = `13px ${FONT}`;
-  ctx.fillStyle = '#ffd700';
-
-  ctx.textAlign = 'left';
-
-  ctx.fillText(
-    `ذهب: ${ar(user.gold)}`,
-    55,
-    258
-  );
-
-  ctx.textAlign = 'right';
-
-  ctx.fillText(
-    `جواهر: ${ar(user.gems)}`,
-    w - 55,
-    258
-  );
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 14px ${FONT}`;
-
-  ctx.fillText(
-    `إجمالي الثروة: ${ar(total)} عملة`,
-    w / 2,
-    261
-  );
-
-  const lvl =
-    Math.floor(
-      Math.sqrt((user.xp || 0) / 100)
-    ) + 1;
-
-  const nextXp =
-    Math.pow(lvl, 2) * 100;
-
-  const curXp =
-    Math.pow(lvl - 1, 2) * 100;
-
-  const prog =
-    Math.min(
-      Math.floor(
-        (((user.xp || 0) - curXp) /
-          (nextXp - curXp)) *
-          100
-      ),
-      100
-    ) || 0;
-
-  ctx.font = `13px ${FONT}`;
-  ctx.fillStyle = '#aaaaaa';
-
-  ctx.textAlign = 'left';
-
-  ctx.fillText(
-    `المستوى ${lvl}`,
-    55,
-    310
-  );
-
-  ctx.textAlign = 'right';
-
-  ctx.fillText(
-    `${user.xp || 0} / ${nextXp} XP`,
-    w - 55,
-    310
-  );
-
-  drawProgressBar(
-    ctx,
-    55,
-    318,
-    w - 110,
-    12,
-    prog,
-    '#ffd700',
-    '#ff8800'
-  );
-
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = '#666666';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    'بوت البنك • الديسكورد',
-    w / 2,
-    368
-  );
-
-  return canvas.toBuffer('image/png');
-}
-
-async function generateLeaderboardImage(
-  users,
-  title = 'أغنى اللاعبين'
-) {
-  const w = 700;
-  const h =
-    80 +
-    users.length * 68 +
-    40;
-
-  const canvas =
-    createCanvas(
-      w,
-      Math.max(h, 300)
-    );
-
-  const ctx =
-    canvas.getContext('2d');
-
-  drawGradientBg(
-    ctx,
-    w,
-    canvas.height,
-    [
-      '#0a0a1a',
-      '#0d1b2a',
-      '#0a1520'
-    ]
-  );
-
-  drawStars(
-    ctx,
-    w,
-    canvas.height,
-    60
-  );
-
-  ctx.font = `bold 26px ${FONT}`;
-  ctx.fillStyle = '#ffd700';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    title,
-    w / 2,
-    45
-  );
-
-  const medals = [
-    '🥇',
-    '🥈',
-    '🥉'
-  ];
-
-  users.forEach((u, i) => {
-    const y = 75 + i * 68;
-    const isTop = i < 3;
-
-    const cardColor = isTop
-      ? [
-          'rgba(255,215,0,0.15)',
-          'rgba(192,192,192,0.15)',
-          'rgba(205,127,50,0.15)'
-        ][i]
-      : 'rgba(255,255,255,0.05)';
-
-    const borderColor = isTop
-      ? [
-          '#ffd700',
-          '#c0c0c0',
-          '#cd7f32'
-        ][i]
-      : 'rgba(255,255,255,0.1)';
-
-    drawCard(
-      ctx,
-      30,
-      y,
-      w - 60,
-      58,
-      12,
-      cardColor,
-      borderColor
-    );
-
-    const medal =
-      medals[i] || `#${i + 1}`;
-
-    ctx.font = `bold 22px ${FONT}`;
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-
-    ctx.fillText(
-      medal,
-      52,
-      y + 36
-    );
-
-    ctx.font = `bold 16px ${FONT}`;
-    ctx.fillStyle = '#e0e0e0';
-
-    ctx.fillText(
-      u.username,
-      95,
-      y + 28
-    );
-
-    const total =
-      (u.cash || 0) +
-      (u.bank || 0);
-
-    const rankColor =
-      getRankColor(total);
-
-    ctx.font = `13px ${FONT}`;
-    ctx.fillStyle = rankColor;
-
-    ctx.fillText(
-      getRankName(total),
-      95,
-      y + 50
-    );
-
-    ctx.font = `bold 18px ${FONT}`;
-    ctx.fillStyle = '#ffd700';
-    ctx.textAlign = 'right';
-
-    ctx.fillText(
-      `${ar(total)} 💰`,
-      w - 50,
-      y + 36
-    );
-  });
-
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = '#444444';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    'بوت البنك',
-    w / 2,
-    canvas.height - 12
-  );
-
-  return canvas.toBuffer('image/png');
-}
-
-async function generateSimpleImage(
-  title,
-  lines,
-  color = '#4a9eff',
-  emoji = '💰'
-) {
-  const w = 600;
-  const lineH = 36;
-
-  const h =
-    100 +
-    lines.length * lineH +
-    40;
-
-  const canvas =
-    createCanvas(
-      w,
-      Math.max(h, 200)
-    );
-
-  const ctx =
-    canvas.getContext('2d');
-
-  drawGradientBg(
-    ctx,
-    w,
-    canvas.height,
-    [
-      '#0a0a1a',
-      '#0d1b2a',
-      '#0a1520'
-    ]
-  );
-
-  drawStars(
-    ctx,
-    w,
-    canvas.height,
-    40
-  );
 
   drawCard(
     ctx,
     20,
     20,
     w - 40,
-    60,
-    12,
-    color + '22',
-    color + '66'
+    65,
+    15,
+    'rgba(255,255,255,0.04)',
+    `${rankColor}66`
   );
 
-  ctx.font = `bold 24px ${FONT}`;
-  ctx.fillStyle = color;
-  ctx.textAlign = 'center';
+  safeText(
+    ctx,
+    `رصيد ${user.username || 'العضو'}`,
+    w / 2,
+    52,
+    {
+      font: `bold 25px "${FONT}"`,
+      color: rankColor
+    }
+  );
 
-  ctx.fillText(
+  safeText(
+    ctx,
+    `الرتبة: ${getRankName(total)}`,
+    w / 2,
+    75,
+    {
+      font: `14px "${FONT}"`,
+      color: '#aaaaaa'
+    }
+  );
+
+  const cardW = 300;
+  const cardH = 115;
+  const gap = 20;
+
+  const x1 =
+    (w - cardW * 2 - gap) / 2;
+
+  const x2 =
+    x1 + cardW + gap;
+
+  drawCard(
+    ctx,
+    x1,
+    105,
+    cardW,
+    cardH,
+    15,
+    'rgba(30,70,130,0.65)',
+    '#2868cc'
+  );
+
+  safeText(
+    ctx,
+    'النقد',
+    x1 + cardW / 2,
+    135,
+    {
+      font: `bold 15px "${FONT}"`,
+      color: '#7aadff'
+    }
+  );
+
+  safeText(
+    ctx,
+    ar(cash),
+    x1 + cardW / 2,
+    178,
+    {
+      font: `bold 32px "${FONT}"`,
+      color: '#ffffff'
+    }
+  );
+
+  safeText(
+    ctx,
+    'عملة',
+    x1 + cardW / 2,
+    201,
+    {
+      font: `12px "${FONT}"`,
+      color: '#77aadd'
+    }
+  );
+
+  drawCard(
+    ctx,
+    x2,
+    105,
+    cardW,
+    cardH,
+    15,
+    'rgba(30,100,65,0.65)',
+    '#258a55'
+  );
+
+  safeText(
+    ctx,
+    'البنك',
+    x2 + cardW / 2,
+    135,
+    {
+      font: `bold 15px "${FONT}"`,
+      color: '#7affaa'
+    }
+  );
+
+  safeText(
+    ctx,
+    ar(bank),
+    x2 + cardW / 2,
+    178,
+    {
+      font: `bold 32px "${FONT}"`,
+      color: '#ffffff'
+    }
+  );
+
+  safeText(
+    ctx,
+    'عملة',
+    x2 + cardW / 2,
+    201,
+    {
+      font: `12px "${FONT}"`,
+      color: '#55cc88'
+    }
+  );
+
+  drawCard(
+    ctx,
+    30,
+    240,
+    w - 60,
+    55,
+    12,
+    'rgba(255,215,0,0.06)',
+    'rgba(255,215,0,0.25)'
+  );
+
+  safeText(
+    ctx,
+    `ذهب: ${ar(user.gold)}`,
+    160,
+    274,
+    {
+      font: `14px "${FONT}"`,
+      color: '#ffd700'
+    }
+  );
+
+  safeText(
+    ctx,
+    `إجمالي: ${ar(total)}`,
+    w / 2,
+    274,
+    {
+      font: `bold 14px "${FONT}"`,
+      color: '#ffffff'
+    }
+  );
+
+  safeText(
+    ctx,
+    `جواهر: ${ar(user.gems)}`,
+    w - 160,
+    274,
+    {
+      font: `14px "${FONT}"`,
+      color: '#88aaff'
+    }
+  );
+
+  const xp = Number(user.xp) || 0;
+  const level =
+    Math.floor(Math.sqrt(xp / 100)) + 1;
+
+  const currentXp =
+    Math.pow(level - 1, 2) * 100;
+
+  const nextXp =
+    Math.pow(level, 2) * 100;
+
+  let progress = 0;
+
+  if (nextXp > currentXp) {
+    progress =
+      ((xp - currentXp) /
+        (nextXp - currentXp)) *
+      100;
+  }
+
+  safeText(
+    ctx,
+    `المستوى ${level}`,
+    70,
+    325,
+    {
+      font: `13px "${FONT}"`,
+      color: '#aaaaaa',
+      align: 'left'
+    }
+  );
+
+  safeText(
+    ctx,
+    `${xp} / ${nextXp} XP`,
+    w - 70,
+    325,
+    {
+      font: `13px "${FONT}"`,
+      color: '#aaaaaa',
+      align: 'right'
+    }
+  );
+
+  drawProgressBar(
+    ctx,
+    70,
+    335,
+    w - 140,
+    10,
+    progress,
+    rankColor
+  );
+
+  safeText(
+    ctx,
+    'بوت البنك',
+    w / 2,
+    368,
+    {
+      font: `11px "${FONT}"`,
+      color: '#555555'
+    }
+  );
+
+  return canvas.toBuffer('image/png');
+}
+
+// ===============================
+// صورة بسيطة
+// ===============================
+
+async function generateSimpleImage(
+  title,
+  lines = [],
+  color = '#4a9eff',
+  emoji = '💰'
+) {
+  const w = 600;
+
+  const h = Math.max(
+    220,
+    120 + lines.length * 40
+  );
+
+  const { canvas, ctx } =
+    createBaseCanvas(w, h);
+
+  drawCard(
+    ctx,
+    20,
+    20,
+    w - 40,
+    65,
+    15,
+    `${color}22`,
+    `${color}66`
+  );
+
+  safeText(
+    ctx,
     `${emoji} ${title}`,
     w / 2,
-    58
+    60,
+    {
+      font: `bold 23px "${FONT}"`,
+      color
+    }
   );
 
-  lines.forEach((line, i) => {
-    const y =
-      100 +
-      i * lineH;
+  lines.forEach((line, index) => {
+    const y = 115 + index * 40;
+
+    if (!line) return;
 
     if (line.divider) {
       ctx.beginPath();
 
-      ctx.moveTo(
-        40,
-        y + lineH / 2
-      );
-
-      ctx.lineTo(
-        w - 40,
-        y + lineH / 2
-      );
+      ctx.moveTo(40, y);
+      ctx.lineTo(w - 40, y);
 
       ctx.strokeStyle =
-        'rgba(255,255,255,0.1)';
+        'rgba(255,255,255,0.12)';
 
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -634,67 +623,193 @@ async function generateSimpleImage(
       return;
     }
 
-    if (line.header) {
-      ctx.font = `bold 15px ${FONT}`;
-      ctx.fillStyle = color;
-      ctx.textAlign = 'center';
-
-      ctx.fillText(
-        line.header,
-        w / 2,
-        y + 24
-      );
-
-      return;
-    }
-
-    ctx.font = `15px ${FONT}`;
-    ctx.fillStyle =
-      line.highlight
-        ? '#ffd700'
-        : '#cccccc';
-
-    if (line.left && line.right) {
-      ctx.textAlign = 'left';
-
-      ctx.fillText(
+    if (
+      line.left !== undefined &&
+      line.right !== undefined
+    ) {
+      safeText(
+        ctx,
         line.left,
         45,
-        y + 24
+        y,
+        {
+          font: `15px "${FONT}"`,
+          color:
+            line.highlight
+              ? '#ffd700'
+              : '#cccccc',
+          align: 'left'
+        }
       );
 
-      ctx.textAlign = 'right';
-      ctx.fillStyle =
-        line.rightColor || '#ffffff';
-
-      ctx.fillText(
+      safeText(
+        ctx,
         line.right,
         w - 45,
-        y + 24
+        y,
+        {
+          font: `bold 15px "${FONT}"`,
+          color:
+            line.rightColor ||
+            '#ffffff',
+          align: 'right'
+        }
       );
     } else {
-      ctx.textAlign = 'center';
-
-      ctx.fillText(
-        line.text || line,
+      safeText(
+        ctx,
+        line.text || String(line),
         w / 2,
-        y + 24
+        y,
+        {
+          font: `15px "${FONT}"`,
+          color:
+            line.highlight
+              ? '#ffd700'
+              : '#cccccc'
+        }
       );
     }
   });
 
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = '#444444';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     'بوت البنك',
     w / 2,
-    canvas.height - 10
+    h - 12,
+    {
+      font: `11px "${FONT}"`,
+      color: '#555555'
+    }
   );
 
   return canvas.toBuffer('image/png');
 }
+
+// ===============================
+// التوب
+// ===============================
+
+async function generateLeaderboardImage(
+  users = [],
+  title = 'أغنى اللاعبين'
+) {
+  const w = 700;
+
+  const h = Math.max(
+    300,
+    100 + users.length * 68
+  );
+
+  const { canvas, ctx } =
+    createBaseCanvas(w, h);
+
+  safeText(
+    ctx,
+    title,
+    w / 2,
+    50,
+    {
+      font: `bold 26px "${FONT}"`,
+      color: '#ffd700'
+    }
+  );
+
+  users.forEach((user, index) => {
+    const y = 70 + index * 68;
+
+    const total =
+      (Number(user.cash) || 0) +
+      (Number(user.bank) || 0);
+
+    const medal =
+      index === 0
+        ? '🥇'
+        : index === 1
+          ? '🥈'
+          : index === 2
+            ? '🥉'
+            : `#${index + 1}`;
+
+    drawCard(
+      ctx,
+      25,
+      y,
+      w - 50,
+      55,
+      12,
+      'rgba(255,255,255,0.05)',
+      index < 3
+        ? getRankColor(total)
+        : 'rgba(255,255,255,0.1)'
+    );
+
+    safeText(
+      ctx,
+      medal,
+      55,
+      y + 35,
+      {
+        font: `bold 20px "${FONT}"`,
+        color: '#ffffff',
+        align: 'left'
+      }
+    );
+
+    safeText(
+      ctx,
+      user.username || 'عضو',
+      100,
+      y + 25,
+      {
+        font: `bold 15px "${FONT}"`,
+        color: '#ffffff',
+        align: 'left'
+      }
+    );
+
+    safeText(
+      ctx,
+      getRankName(total),
+      100,
+      y + 45,
+      {
+        font: `12px "${FONT}"`,
+        color: getRankColor(total),
+        align: 'left'
+      }
+    );
+
+    safeText(
+      ctx,
+      `${ar(total)} 💰`,
+      w - 45,
+      y + 34,
+      {
+        font: `bold 17px "${FONT}"`,
+        color: '#ffd700',
+        align: 'right'
+      }
+    );
+  });
+
+  safeText(
+    ctx,
+    'بوت البنك',
+    w / 2,
+    h - 10,
+    {
+      font: `11px "${FONT}"`,
+      color: '#555555'
+    }
+  );
+
+  return canvas.toBuffer('image/png');
+}
+
+// ===============================
+// نتيجة الألعاب
+// ===============================
 
 async function generateGameResultImage(
   title,
@@ -706,39 +821,10 @@ async function generateGameResultImage(
   const w = 600;
   const h = 320;
 
-  const canvas =
-    createCanvas(w, h);
+  const { canvas, ctx } =
+    createBaseCanvas(w, h);
 
-  const ctx =
-    canvas.getContext('2d');
-
-  const bgColor = isWin
-    ? [
-        '#0a1a0a',
-        '#0d2b0d',
-        '#0a1a0a'
-      ]
-    : [
-        '#1a0a0a',
-        '#2b0d0d',
-        '#1a0a0a'
-      ];
-
-  drawGradientBg(
-    ctx,
-    w,
-    h,
-    bgColor
-  );
-
-  drawStars(
-    ctx,
-    w,
-    h,
-    50
-  );
-
-  const mainColor =
+  const color =
     isWin
       ? '#44ff88'
       : '#ff4444';
@@ -749,75 +835,89 @@ async function generateGameResultImage(
     20,
     w - 40,
     70,
-    14,
-    mainColor + '22',
-    mainColor + '88'
+    15,
+    `${color}22`,
+    `${color}66`
   );
 
-  ctx.font = `bold 26px ${FONT}`;
-  ctx.fillStyle = mainColor;
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     title,
     w / 2,
-    62
+    62,
+    {
+      font: `bold 25px "${FONT}"`,
+      color
+    }
   );
 
-  ctx.font = `bold 44px ${FONT}`;
-  ctx.fillStyle =
-    isWin
-      ? '#ffd700'
-      : '#ff6666';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     isWin
       ? `+${ar(amount)}`
       : `-${ar(amount)}`,
     w / 2,
-    155
+    150,
+    {
+      font: `bold 42px "${FONT}"`,
+      color: isWin
+        ? '#ffd700'
+        : '#ff6666'
+    }
   );
 
-  ctx.font = `18px ${FONT}`;
-  ctx.fillStyle = '#888888';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     'عملة',
     w / 2,
-    180
+    180,
+    {
+      font: `17px "${FONT}"`,
+      color: '#888888'
+    }
   );
 
-  ctx.font = `bold 20px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     result,
     w / 2,
-    215
+    215,
+    {
+      font: `bold 19px "${FONT}"`,
+      color: '#ffffff'
+    }
   );
 
-  details.forEach((d, i) => {
-    ctx.font = `14px ${FONT}`;
-    ctx.fillStyle = '#aaaaaa';
-
-    ctx.fillText(
-      d,
+  details.forEach((detail, index) => {
+    safeText(
+      ctx,
+      detail,
       w / 2,
-      240 + i * 22
+      245 + index * 22,
+      {
+        font: `13px "${FONT}"`,
+        color: '#aaaaaa'
+      }
     );
   });
 
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = '#444444';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     'بوت البنك',
     w / 2,
-    h - 12
+    h - 12,
+    {
+      font: `11px "${FONT}"`,
+      color: '#555555'
+    }
   );
 
   return canvas.toBuffer('image/png');
 }
+
+// ===============================
+// البروفايل
+// ===============================
 
 async function generateProfileImage(
   user,
@@ -827,551 +927,359 @@ async function generateProfileImage(
   const w = 700;
   const h = 460;
 
-  const canvas =
-    createCanvas(w, h);
+  const { canvas, ctx } =
+    createBaseCanvas(w, h);
 
-  const ctx =
-    canvas.getContext('2d');
+  const cash = Number(user.cash) || 0;
+  const bank = Number(user.bank) || 0;
 
-  const total =
-    (user.cash || 0) +
-    (user.bank || 0);
-
-  const rankColor =
-    getRankColor(total);
-
-  drawGradientBg(
-    ctx,
-    w,
-    h,
-    [
-      '#0a0a1a',
-      '#0d1b2a',
-      '#0a1520'
-    ]
-  );
-
-  drawStars(
-    ctx,
-    w,
-    h,
-    70
-  );
-
-  const topGrad =
-    ctx.createLinearGradient(
-      0,
-      0,
-      w,
-      100
-    );
-
-  topGrad.addColorStop(
-    0,
-    rankColor + '44'
-  );
-
-  topGrad.addColorStop(
-    1,
-    'transparent'
-  );
-
-  ctx.fillStyle = topGrad;
-  ctx.fillRect(0, 0, w, 100);
-
-  ctx.beginPath();
-
-  ctx.arc(
-    60,
-    55,
-    35,
-    0,
-    Math.PI * 2
-  );
-
-  ctx.fillStyle =
-    rankColor + '33';
-
-  ctx.fill();
-
-  ctx.strokeStyle =
-    rankColor;
-
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  ctx.font = `bold 28px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    '👤',
-    60,
-    65
-  );
-
-  ctx.font = `bold 22px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
-
-  ctx.fillText(
-    user.username,
-    110,
-    45
-  );
-
-  ctx.font = `14px ${FONT}`;
-  ctx.fillStyle = rankColor;
-
-  ctx.fillText(
-    `${getRankName(total)} • مستوى ${user.level || 1}`,
-    110,
-    68
-  );
-
-  ctx.fillStyle = '#666666';
-
-  ctx.fillText(
-    `الوظيفة: ${user.job || 'بدون وظيفة'}`,
-    110,
-    88
-  );
-
-  const col1X = 30;
-  const col2X = w / 2 + 10;
-  const statY = 115;
+  const total = cash + bank;
+  const rankColor = getRankColor(total);
 
   drawCard(
     ctx,
-    col1X,
-    statY,
-    w / 2 - 20,
-    100,
-    12,
-    'rgba(20,40,80,0.8)',
-    '#1a4a9a44'
-  );
-
-  ctx.font = `bold 13px ${FONT}`;
-  ctx.fillStyle = '#7aadff';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    'الثروة',
-    col1X + (w / 2 - 20) / 2,
-    statY + 25
-  );
-
-  ctx.font = `bold 26px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-
-  ctx.fillText(
-    ar(total),
-    col1X + (w / 2 - 20) / 2,
-    statY + 60
-  );
-
-  ctx.font = `12px ${FONT}`;
-  ctx.fillStyle = '#aaaaaa';
-
-  ctx.fillText(
-    `نقد: ${ar(user.cash)} | بنك: ${ar(user.bank)}`,
-    col1X + (w / 2 - 20) / 2,
-    statY + 85
-  );
-
-  drawCard(
-    ctx,
-    col2X,
-    statY,
-    w / 2 - 20,
-    100,
-    12,
-    'rgba(80,40,20,0.8)',
-    '#9a5a1a44'
-  );
-
-  ctx.font = `bold 13px ${FONT}`;
-  ctx.fillStyle = '#ffaa7a';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    'الخبرة',
-    col2X + (w / 2 - 20) / 2,
-    statY + 25
-  );
-
-  ctx.font = `bold 26px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-
-  ctx.fillText(
-    `${user.xp || 0} XP`,
-    col2X + (w / 2 - 20) / 2,
-    statY + 60
-  );
-
-  ctx.font = `12px ${FONT}`;
-  ctx.fillStyle = '#aaaaaa';
-
-  ctx.fillText(
-    `مستوى: ${user.level || 1}`,
-    col2X + (w / 2 - 20) / 2,
-    statY + 85
-  );
-
-  const lvl =
-    user.level || 1;
-
-  const nextXp =
-    Math.pow(lvl, 2) * 100;
-
-  const curXp =
-    Math.pow(lvl - 1, 2) * 100;
-
-  const prog =
-    Math.min(
-      Math.floor(
-        (((user.xp || 0) - curXp) /
-          (nextXp - curXp)) *
-          100
-      ),
-      100
-    ) || 0;
-
-  ctx.font = `12px ${FONT}`;
-  ctx.fillStyle = '#aaaaaa';
-  ctx.textAlign = 'left';
-
-  ctx.fillText(
-    `تقدم المستوى: ${prog}%`,
-    col1X + 5,
-    235
-  );
-
-  drawProgressBar(
-    ctx,
-    col1X,
-    242,
-    w - 60,
-    10,
-    prog,
-    rankColor,
-    '#ffffff'
-  );
-
-  const infoY = 268;
-
-  drawCard(
-    ctx,
-    30,
-    infoY,
-    w - 60,
+    25,
+    20,
+    w - 50,
     80,
+    15,
+    `${rankColor}18`,
+    `${rankColor}55`
+  );
+
+  safeText(
+    ctx,
+    user.username || 'عضو',
+    120,
+    55,
+    {
+      font: `bold 23px "${FONT}"`,
+      color: '#ffffff',
+      align: 'left'
+    }
+  );
+
+  safeText(
+    ctx,
+    `${getRankName(total)} • مستوى ${user.level || 1}`,
+    120,
+    78,
+    {
+      font: `14px "${FONT}"`,
+      color: rankColor,
+      align: 'left'
+    }
+  );
+
+  safeText(
+    ctx,
+    `الوظيفة: ${user.job || 'بدون وظيفة'}`,
+    120,
+    96,
+    {
+      font: `12px "${FONT}"`,
+      color: '#888888',
+      align: 'left'
+    }
+  );
+
+  drawCard(
+    ctx,
+    25,
+    120,
+    315,
+    100,
     12,
-    'rgba(30,30,50,0.8)',
+    'rgba(30,70,130,0.55)',
+    '#2868cc55'
+  );
+
+  safeText(
+    ctx,
+    'الثروة',
+    182,
+    148,
+    {
+      font: `bold 14px "${FONT}"`,
+      color: '#7aadff'
+    }
+  );
+
+  safeText(
+    ctx,
+    ar(total),
+    182,
+    185,
+    {
+      font: `bold 27px "${FONT}"`,
+      color: '#ffffff'
+    }
+  );
+
+  safeText(
+    ctx,
+    `نقد: ${ar(cash)} | بنك: ${ar(bank)}`,
+    182,
+    207,
+    {
+      font: `12px "${FONT}"`,
+      color: '#aaaaaa'
+    }
+  );
+
+  drawCard(
+    ctx,
+    360,
+    120,
+    315,
+    100,
+    12,
+    'rgba(80,40,20,0.55)',
+    '#aa662255'
+  );
+
+  safeText(
+    ctx,
+    'الخبرة',
+    517,
+    148,
+    {
+      font: `bold 14px "${FONT}"`,
+      color: '#ffaa7a'
+    }
+  );
+
+  safeText(
+    ctx,
+    `${user.xp || 0} XP`,
+    517,
+    185,
+    {
+      font: `bold 27px "${FONT}"`,
+      color: '#ffffff'
+    }
+  );
+
+  safeText(
+    ctx,
+    `المستوى: ${user.level || 1}`,
+    517,
+    207,
+    {
+      font: `12px "${FONT}"`,
+      color: '#aaaaaa'
+    }
+  );
+
+  drawCard(
+    ctx,
+    25,
+    240,
+    w - 50,
+    100,
+    12,
+    'rgba(255,255,255,0.04)',
     'rgba(255,255,255,0.1)'
   );
 
-  const infos = [
-    {
-      label: 'ذهب',
-      val: ar(user.gold)
-    },
-    {
-      label: 'جواهر',
-      val: ar(user.gems)
-    },
-    {
-      label: 'عقارات',
-      val: String(properties.length)
-    },
-    {
-      label: 'حيوان',
-      val: pets.length
+  const info = [
+    `ذهب: ${ar(user.gold)}`,
+    `جواهر: ${ar(user.gems)}`,
+    `عقارات: ${properties.length}`,
+    `حيوان: ${
+      pets.length
         ? pets[0].pet_type
         : 'لا يوجد'
-    },
-    {
-      label: 'نقابة',
-      val: user.guild_name || 'لا يوجد'
-    },
-    {
-      label: 'متزوج',
-      val: user.married_to
+    }`,
+    `متزوج: ${
+      user.married_to
         ? 'نعم'
         : 'لا'
-    }
+    }`,
+    `نقابة: ${
+      user.guild_name || 'لا يوجد'
+    }`
   ];
 
-  const infoW =
-    (w - 60) / 3;
+  info.forEach((text, index) => {
+    const col = index % 3;
+    const row = Math.floor(index / 3);
 
-  infos.forEach((info, i) => {
-    const col = i % 3;
-    const row = Math.floor(i / 3);
-
-    const ix =
-      30 +
-      col * infoW +
-      infoW / 2;
-
-    const iy =
-      infoY +
-      25 +
-      row * 34;
-
-    ctx.font = `12px ${FONT}`;
-    ctx.fillStyle = '#888888';
-    ctx.textAlign = 'center';
-
-    ctx.fillText(
-      info.label,
-      ix,
-      iy
-    );
-
-    ctx.font = `bold 13px ${FONT}`;
-    ctx.fillStyle = '#ffffff';
-
-    ctx.fillText(
-      info.val,
-      ix,
-      iy + 18
+    safeText(
+      ctx,
+      text,
+      135 + col * 215,
+      275 + row * 40,
+      {
+        font: `13px "${FONT}"`,
+        color: '#dddddd'
+      }
     );
   });
 
+  safeText(
+    ctx,
+    `الرتبة: ${getRankName(total)}`,
+    w / 2,
+    380,
+    {
+      font: `bold 16px "${FONT}"`,
+      color: rankColor
+    }
+  );
+
   if (user.married_to) {
-    drawCard(
+    safeText(
       ctx,
-      30,
-      365,
-      w - 60,
-      40,
-      10,
-      'rgba(255,100,150,0.15)',
-      '#ff449988'
-    );
-
-    ctx.font = `14px ${FONT}`;
-    ctx.fillStyle = '#ff88bb';
-    ctx.textAlign = 'center';
-
-    ctx.fillText(
       `متزوج من: ${user.married_to}`,
       w / 2,
-      390
+      410,
+      {
+        font: `14px "${FONT}"`,
+        color: '#ff88bb'
+      }
     );
   }
 
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = '#444444';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     'بوت البنك',
     w / 2,
-    h - 10
+    h - 10,
+    {
+      font: `11px "${FONT}"`,
+      color: '#555555'
+    }
   );
 
   return canvas.toBuffer('image/png');
 }
 
-async function generateShopImage(items) {
+// ===============================
+// المتجر
+// ===============================
+
+async function generateShopImage(items = []) {
   const w = 700;
 
   const rows =
     Math.ceil(items.length / 2);
 
-  const h =
-    90 +
-    rows * 90 +
-    40;
-
-  const canvas =
-    createCanvas(
-      w,
-      Math.max(h, 300)
-    );
-
-  const ctx =
-    canvas.getContext('2d');
-
-  drawGradientBg(
-    ctx,
-    w,
-    canvas.height,
-    [
-      '#0a0a1a',
-      '#1a0d2a',
-      '#0a0a1a'
-    ]
+  const h = Math.max(
+    300,
+    100 + rows * 90
   );
 
-  drawStars(
+  const { canvas, ctx } =
+    createBaseCanvas(w, h);
+
+  safeText(
     ctx,
-    w,
-    canvas.height,
-    50
-  );
-
-  ctx.font = `bold 26px ${FONT}`;
-  ctx.fillStyle = '#ffd700';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
     'المتجر',
     w / 2,
-    50
+    50,
+    {
+      font: `bold 26px "${FONT}"`,
+      color: '#ffd700'
+    }
   );
 
-  items.forEach((item, i) => {
-    const col = i % 2;
-    const row = Math.floor(i / 2);
+  items.forEach((item, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
 
     const x =
       col === 0
         ? 20
-        : w / 2 + 10;
+        : 360;
 
     const y =
-      70 +
-      row * 90;
-
-    const iw =
-      w / 2 - 30;
+      70 + row * 90;
 
     drawCard(
       ctx,
       x,
       y,
-      iw,
+      320,
       75,
       12,
-      'rgba(30,30,60,0.9)',
-      '#4444aa44'
+      'rgba(30,30,60,0.75)',
+      'rgba(100,100,200,0.3)'
     );
 
-    ctx.font = `bold 16px ${FONT}`;
-    ctx.fillStyle = '#e0e0e0';
-    ctx.textAlign = 'left';
-
-    ctx.fillText(
-      `${item.emoji || ''} ${item.name}`,
-      x + 14,
-      y + 28
+    safeText(
+      ctx,
+      `${item.emoji || ''} ${item.name || 'غرض'}`,
+      x + 15,
+      y + 28,
+      {
+        font: `bold 15px "${FONT}"`,
+        color: '#ffffff',
+        align: 'left'
+      }
     );
 
-    ctx.font = `12px ${FONT}`;
-    ctx.fillStyle = '#888888';
-
-    ctx.fillText(
+    safeText(
+      ctx,
       item.description || '',
-      x + 14,
-      y + 48
+      x + 15,
+      y + 50,
+      {
+        font: `11px "${FONT}"`,
+        color: '#888888',
+        align: 'left'
+      }
     );
 
-    ctx.font = `bold 16px ${FONT}`;
-    ctx.fillStyle = '#ffd700';
-    ctx.textAlign = 'right';
-
-    ctx.fillText(
+    safeText(
+      ctx,
       `${ar(item.price)} 💰`,
-      x + iw - 14,
-      y + 28
+      x + 305,
+      y + 28,
+      {
+        font: `bold 15px "${FONT}"`,
+        color: '#ffd700',
+        align: 'right'
+      }
     );
-
-    if (item.effect) {
-      ctx.font = `11px ${FONT}`;
-      ctx.fillStyle = '#44ff88';
-
-      ctx.textAlign = 'right';
-
-      ctx.fillText(
-        item.effect,
-        x + iw - 14,
-        y + 48
-      );
-    }
   });
-
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = '#444444';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
-    'بوت البنك',
-    w / 2,
-    canvas.height - 10
-  );
 
   return canvas.toBuffer('image/png');
 }
 
-async function generateStocksImage(stocks) {
+// ===============================
+// الأسهم
+// ===============================
+
+async function generateStocksImage(stocks = []) {
   const w = 700;
 
-  const h =
-    90 +
-    stocks.length * 65 +
-    40;
-
-  const canvas =
-    createCanvas(
-      w,
-      Math.max(h, 300)
-    );
-
-  const ctx =
-    canvas.getContext('2d');
-
-  drawGradientBg(
-    ctx,
-    w,
-    canvas.height,
-    [
-      '#0a1a0a',
-      '#0d2b0d',
-      '#0a1a0a'
-    ]
+  const h = Math.max(
+    300,
+    100 + stocks.length * 65
   );
 
-  drawStars(
+  const { canvas, ctx } =
+    createBaseCanvas(w, h);
+
+  safeText(
     ctx,
-    w,
-    canvas.height,
-    40
-  );
-
-  ctx.font = `bold 24px ${FONT}`;
-  ctx.fillStyle = '#44ff88';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
     'سوق الأسهم',
     w / 2,
-    46
+    48,
+    {
+      font: `bold 25px "${FONT}"`,
+      color: '#44ff88'
+    }
   );
 
-  stocks.forEach((s, i) => {
-    const y =
-      65 +
-      i * 65;
+  stocks.forEach((stock, index) => {
+    const y = 65 + index * 65;
 
     const change =
-      s.change || 0;
+      Number(stock.change) || 0;
 
-    const isUp =
-      change >= 0;
-
-    const borderColor =
-      isUp
-        ? '#44ff8844'
-        : '#ff444444';
-
-    const cardBg =
-      isUp
-        ? 'rgba(20,60,20,0.6)'
-        : 'rgba(60,20,20,0.6)';
+    const up = change >= 0;
 
     drawCard(
       ctx,
@@ -1380,65 +1288,70 @@ async function generateStocksImage(stocks) {
       w - 40,
       52,
       10,
-      cardBg,
-      borderColor
+      up
+        ? 'rgba(20,70,30,0.55)'
+        : 'rgba(70,20,20,0.55)',
+      up
+        ? '#44ff8844'
+        : '#ff444444'
     );
 
-    ctx.font = `bold 16px ${FONT}`;
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-
-    ctx.fillText(
-      `[${s.symbol}] ${s.name}`,
+    safeText(
+      ctx,
+      `[${stock.symbol}] ${stock.name || ''}`,
       40,
-      y + 22
+      y + 22,
+      {
+        font: `bold 15px "${FONT}"`,
+        color: '#ffffff',
+        align: 'left'
+      }
     );
 
-    ctx.font = `13px ${FONT}`;
-    ctx.fillStyle = '#888888';
-
-    ctx.fillText(
-      `آخر تحديث: ${s.timeAgo || 'الآن'}`,
-      40,
-      y + 42
-    );
-
-    ctx.font = `bold 20px ${FONT}`;
-    ctx.fillStyle = '#ffd700';
-    ctx.textAlign = 'right';
-
-    ctx.fillText(
-      `${ar(s.price)} 💰`,
+    safeText(
+      ctx,
+      `${ar(stock.price)} 💰`,
       w - 40,
-      y + 22
+      y + 22,
+      {
+        font: `bold 18px "${FONT}"`,
+        color: '#ffd700',
+        align: 'right'
+      }
     );
 
-    ctx.font = `bold 14px ${FONT}`;
-
-    ctx.fillStyle =
-      isUp
-        ? '#44ff88'
-        : '#ff4444';
-
-    ctx.fillText(
-      `${isUp ? '▲' : '▼'} ${Math.abs(change)}%`,
+    safeText(
+      ctx,
+      `${up ? '▲' : '▼'} ${Math.abs(change)}%`,
       w - 40,
-      y + 42
+      y + 42,
+      {
+        font: `bold 13px "${FONT}"`,
+        color: up
+          ? '#44ff88'
+          : '#ff4444',
+        align: 'right'
+      }
     );
   });
 
-  ctx.font = `11px ${FONT}`;
-  ctx.fillStyle = '#444444';
-  ctx.textAlign = 'center';
-
-  ctx.fillText(
+  safeText(
+    ctx,
     'الأسعار تتحدث كل 10 دقائق',
     w / 2,
-    canvas.height - 10
+    h - 10,
+    {
+      font: `11px "${FONT}"`,
+      color: '#555555'
+    }
   );
 
   return canvas.toBuffer('image/png');
 }
+
+// ===============================
+// التصدير
+// ===============================
 
 module.exports = {
   generateBalanceImage,
